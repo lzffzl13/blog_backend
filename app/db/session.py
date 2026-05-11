@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,DeclarativeBase,Session
+from typing import Generator
 
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:123456@localhost:3306/blog_db"
 
@@ -12,7 +13,6 @@ engine = create_engine(
     pool_recycle=3600,      #连接回收时间
     pool_timeout=30,        #超时等待时间
     echo=True
-
 )
 
 #负责创建session对象
@@ -22,7 +22,7 @@ SessionLocal = sessionmaker(autocommit=False,autoflush=False,bind=engine)
 class Base(DeclarativeBase):
     pass
 
-def get_db()-> Session:
+def get_db()->  Generator[Session, None, None]:
     db = SessionLocal()
     try:
         yield db
