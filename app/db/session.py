@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,DeclarativeBase,Session
 from typing import Generator
+from app.core.config import settings
 
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:123456@localhost:3306/blog_db"
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
 
 #负责与数据库建立连接
 engine = create_engine(
