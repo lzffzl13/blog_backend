@@ -3,3 +3,7 @@ __pycache__/
 .env
 .idea/
 .vscode/
+.claude/
+DEVLOG.md
+*.log
+logs/

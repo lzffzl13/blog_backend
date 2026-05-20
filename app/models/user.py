@@ -1,5 +1,5 @@
 from sqlalchemy import Column,Integer,String,DateTime,func
-from sqlalchemy.orm import Mapped,mapped_column
+from sqlalchemy.orm import Mapped,mapped_column,relationship
 from app.db.session import Base
 from datetime import datetime
 
@@ -11,3 +11,4 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime,default=func.now())
 
+    articles = relationship("Article", back_populates="author")
