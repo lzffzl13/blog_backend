@@ -8,12 +8,12 @@
 - **ORM**: SQLAlchemy 2.0
 - **数据库**: MySQL (生产) / SQLite (测试)
 - **密码哈希**: bcrypt
-- **测试**: pytest + httpx
+- **测试**: pytest + requests
 - **日志**: Python logging
 
 ## 项目结构
 
-```
+```text
 ├── app/
 │   ├── api/          # 路由层
 │   ├── core/         # 配置、安全、日志
@@ -67,12 +67,12 @@ LOG_LEVEL=INFO
 uvicorn app.main:app --reload
 ```
 
-访问 http://127.0.0.1:8000/docs 查看交互式 API 文档。
+访问 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) 查看交互式 API 文档。
 
 ## API 概览
 
 | 方法 | 路径 | 描述 |
-|------|------|------|
+| ------ | ------ | ------ |
 | POST | `/register` | 注册新用户 |
 | GET | `/articles` | 获取文章列表 |
 | POST | `/articles?author_id=1` | 创建文章 |
@@ -96,7 +96,3 @@ python scripts/test_api.py
 - [ ] 文章分类与标签
 - [ ] 分页优化
 - [ ] 单元测试覆盖率提升
-```
-
-
-
