@@ -1,10 +1,14 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from app.db.session import Base
 from sqlalchemy.pool import StaticPool
-from app.models.user import User
-from app.models.article import Article
+from fastapi.testclient import TestClient
+from app.main import app as fastapi_app
+from app.db.session import Base, get_db
+
+import app.models.user       # noqa: F401
+import app.models.article    # noqa: F401
+
 
 @pytest.fixture(scope="function")
 def db_session():
@@ -19,3 +23,11 @@ def db_session():
 
     session.close()
     engine.dispose()
+
+
+@pytest.fixture(scope="function")
+def client(db_session):
+    """基于测试数据库的 FastAPI TestClient,自动覆盖依赖并清理"""
+    fastapi_app.dependency_overrides[get_db] = lambda: db_session
+    yield TestClient(fastapi_app)
+    fastapi_app.dependency_overrides.clear()
