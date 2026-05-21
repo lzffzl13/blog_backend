@@ -82,12 +82,13 @@ if article_id:
         print(f"   更新后标题: {updated_data['title']}")
 
 #空标题创建文章（422）
-print("\n--- 空标题创建文章 ---")
-r = requests.post(f"{BASE_URL}/articles",params={"author_id": user_id}, json={
-    "title": "",
-    "content": "第二篇文章,内容不空,但标题为空。"
-})
-check("空标题创建文章返回 422", r, 422)
+if user_id:
+    print("\n--- 空标题创建文章 ---")
+    r = requests.post(f"{BASE_URL}/articles",params={"author_id": user_id}, json={
+        "title": "",
+        "content": "第二篇文章,内容不空,但标题为空。"
+    })
+    check("空标题创建文章返回 422", r, 422)
 
 #删除文章
 if article_id:
