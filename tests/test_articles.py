@@ -12,19 +12,26 @@ def test_get_articles(client):
 def test_create_article_empty_title_returns_422(client):
     """测试创建文章时,如果标题为空,返回422"""
     # 先注册作者，并断言成功
-    reg_resp = client.post("/register", json={
-        "username": "author1",
-        "email": "author1@example.com",
-        "password": "secret123",
-    })
+    reg_resp = client.post(
+        "/register",
+        json={
+            "username": "author1",
+            "email": "author1@example.com",
+            "password": "secret123",
+        },
+    )
     assert reg_resp.status_code == 201, f"注册作者失败: {reg_resp.json()}"
     author_id = reg_resp.json()["id"]
 
     # 用空标题创建文章
-    r = client.post("/articles", params={"author_id": author_id}, json={
-        "title": "",
-        "content": "这篇文章标题为空",
-    })
+    r = client.post(
+        "/articles",
+        params={"author_id": author_id},
+        json={
+            "title": "",
+            "content": "这篇文章标题为空",
+        },
+    )
     assert r.status_code == 422
 
 

@@ -3,7 +3,7 @@ def test_register_duplicate_returns_409(client):
     payload = {
         "username": "duplicate_user",
         "email": "dup@example.com",
-        "password": "secret123"
+        "password": "secret123",
     }
     r1 = client.post("/register", json=payload)
     assert r1.status_code == 201

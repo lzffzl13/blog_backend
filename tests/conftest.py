@@ -1,23 +1,27 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
-from app.main import app as fastapi_app
-from app.db.session import Base, get_db
 
-import app.models.user       # noqa: F401
-import app.models.article    # noqa: F401
+import app.models.article  # noqa: F401
+import app.models.user  # noqa: F401
+from app.db.session import Base, get_db
+from app.main import app as fastapi_app
 
 
 @pytest.fixture(scope="function")
 def db_session():
     """创建临时SQLite内存数据库,每次测试独立"""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
 
-    #print("✅ Created tables in SQLite:", list(Base.metadata.tables.keys()))
-    
+    # print("✅ Created tables in SQLite:", list(Base.metadata.tables.keys()))
+
     session = Session(bind=engine)
     yield session
 
