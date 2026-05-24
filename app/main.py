@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.article import router as article_router
+from app.api.auth import router as auth_router
 from app.api.user import router as user_router
 from app.core.logging import setup_logging
 from app.db.session import Base, engine
@@ -19,7 +20,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(user_router)
-app.include_router(article_router, prefix="/articles")
+app.include_router(article_router)
+app.include_router(auth_router)
 
 
 @app.get("/")

@@ -37,3 +37,7 @@ def create_user(db: Session, user_create: UserCreate) -> User | None:
     db.refresh(db_user)
     logger.info("User registered | id=%d | username='%s'", db_user.id, db_user.username)
     return db_user
+
+def get_user_by_username(db: Session, username: str) -> User | None:
+    """根据用户名查询用户"""
+    return db.query(User).filter(User.username == username).first()
