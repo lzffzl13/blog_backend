@@ -15,7 +15,7 @@ def get_articles(db: Session, skip: int = 0, limit: int = 10):
     if limit < 1:
         limit = 10
     total = db.query(Article).count()
-    article = db.query(Article).offset(skip).limit(limit).all()
+    article = db.query(Article).order_by(Article.created_at.desc()).offset(skip).limit(limit).all()
     return total, article
 
 

@@ -1,3 +1,8 @@
+"""用户相关测试 - 覆盖注册、个人信息、修改密码、删除账号等场景"""
+
+from .conftest import register_and_login
+
+
 def test_register_duplicate_returns_409(client):
     """重复注册同一用户应该返回409冲突"""
     payload = {
@@ -5,9 +10,115 @@ def test_register_duplicate_returns_409(client):
         "email": "dup@example.com",
         "password": "secret123",
     }
-    r1 = client.post("/register", json=payload)
+    r1 = client.post("/users", json=payload)
     assert r1.status_code == 201
 
-    r2 = client.post("/register", json=payload)
+    r2 = client.post("/users", json=payload)
     assert r2.status_code == 409
     assert "已被注册" in r2.json()["detail"]
+
+
+# ──────────────────────────────────────────────
+# GET /users/me
+# ──────────────────────────────────────────────
+
+
+def test_get_me_with_token(client):
+    """带 token 获取个人信息，返回 200，username 和 email 正确"""
+    token = register_and_login(client, "testuser", "testuser@example.com")
+
+    r = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["username"] == "testuser"
+    assert data["email"] == "testuser@example.com"
+    assert "id" in data
+
+
+def test_get_me_without_token_returns_401(client):
+    """不带 token 获取个人信息，返回 401"""
+    r = client.get("/users/me")
+    assert r.status_code == 401
+
+
+# ──────────────────────────────────────────────
+# PUT /users/me/password
+# ──────────────────────────────────────────────
+
+
+def test_change_password_success(client):
+    """正确修改密码，返回 200；旧密码失效，新密码可用"""
+    # 注册并登录
+    client.post(
+        "/users",
+        json={
+            "username": "pwuser",
+            "email": "pwuser@example.com",
+            "password": "oldpass123",
+        },
+    )
+    login_resp = client.post(
+        "/auth/login",
+        json={"username": "pwuser", "password": "oldpass123"},
+    )
+    token = login_resp.json()["access_token"]
+
+    # 修改密码
+    r = client.put(
+        "/users/me/password",
+        json={"old_password": "oldpass123", "new_password": "newpass123"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+
+    # 用旧密码登录应失败
+    r_old = client.post(
+        "/auth/login",
+        json={"username": "pwuser", "password": "oldpass123"},
+    )
+    assert r_old.status_code == 401
+
+    # 用新密码登录应成功
+    r_new = client.post(
+        "/auth/login",
+        json={"username": "pwuser", "password": "newpass123"},
+    )
+    assert r_new.status_code == 200
+    assert "access_token" in r_new.json()
+
+
+def test_change_password_wrong_old_password_returns_400(client):
+    """旧密码错误时返回 400，detail 包含"旧密码错误" """
+    token = register_and_login(client, "pwuser2", "pwuser2@example.com", "oldpass123")
+
+    r = client.put(
+        "/users/me/password",
+        json={"old_password": "wrongpass", "new_password": "newpass123"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+    assert "旧密码" in r.json()["detail"]
+
+
+# ──────────────────────────────────────────────
+# DELETE /users/me
+# ──────────────────────────────────────────────
+
+
+def test_delete_me_success(client):
+    """带 token 删除账号，返回 204；删除后用同一 token 访问返回 401"""
+    token = register_and_login(client, "deluser", "deluser@example.com")
+
+    # 删除账号
+    r = client.delete("/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 204
+
+    # 删除后用同一个 token 调用 GET /users/me 应返回 401（用户已不存在）
+    r2 = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+    assert r2.status_code == 401
+
+
+def test_delete_me_without_token_returns_401(client):
+    """不带 token 删除账号，返回 401"""
+    r = client.delete("/users/me")
+    assert r.status_code == 401

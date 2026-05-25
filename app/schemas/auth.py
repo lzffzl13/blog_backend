@@ -13,6 +13,10 @@ class Token(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+class RefreshTokenRequest(BaseModel):
+    """刷新Token请求体"""
+    refresh_token: str = Field(..., description="刷新Token")
+
 class TokenPayload(BaseModel):
     """JWT 解析后的Payload"""
     sub: str

@@ -12,7 +12,7 @@ from app.core.security import (
 )
 from app.crud.user import get_user_by_username
 from app.db.session import get_db
-from app.schemas.auth import LoginRequest, Token
+from app.schemas.auth import LoginRequest, RefreshTokenRequest, Token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -43,10 +43,10 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)) -> Token:
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
     """刷新access token"""
     try:
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_data.refresh_token)
     except ExpiredSignatureError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,6 +77,6 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     logger.info("Access token refreshed | id=%d | username='%s'", user.id, user.username)
     return {
         "access_token": new_access_token,
-        "refresh_token": refresh_token,  # 刷新时不更换refresh token
+        "refresh_token": refresh_data.refresh_token,  # 刷新时不更换refresh token
         "token_type": "bearer",
     }

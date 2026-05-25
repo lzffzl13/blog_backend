@@ -1,11 +1,12 @@
 """认证相关测试 - 覆盖注册、登录、刷新 token 等场景"""
+
 import time
 
 
 def test_register_success(client):
     """步骤1: 注册新用户应返回 201"""
     r = client.post(
-        "/register",
+        "/users",
         json={
             "username": "testuser",
             "email": "testuser@example.com",
@@ -23,7 +24,7 @@ def test_login_success(client):
     """步骤2: 用正确用户名密码登录应返回 200 和 token"""
     # 先注册
     client.post(
-        "/register",
+        "/users",
         json={
             "username": "testuser",
             "email": "testuser@example.com",
@@ -49,7 +50,7 @@ def test_login_wrong_password_returns_401(client):
     """步骤3: 错误密码应返回 401,"用户名或密码错误" """
     # 先注册
     client.post(
-        "/register",
+        "/users",
         json={
             "username": "testuser",
             "email": "testuser@example.com",
@@ -82,10 +83,10 @@ def test_login_nonexistent_user_returns_401(client):
 
 
 def test_refresh_token_returns_new_access_token(client):
-    """步骤8: 刷新 token 应返回新的 access_token，且不等于旧的"""
+    """步骤8: 刷新 token 应返回新的 access_token,且不等于旧的"""
     # 注册并登录
     client.post(
-        "/register",
+        "/users",
         json={
             "username": "testuser",
             "email": "testuser@example.com",
@@ -106,7 +107,7 @@ def test_refresh_token_returns_new_access_token(client):
     time.sleep(1)
 
     # 刷新 token
-    r = client.post(f"/auth/refresh?refresh_token={refresh_token}")
+    r = client.post("/auth/refresh", json={"refresh_token": refresh_token})
     assert r.status_code == 200
     data = r.json()
     assert "access_token" in data
@@ -117,6 +118,6 @@ def test_refresh_token_returns_new_access_token(client):
 
 def test_refresh_with_invalid_token_returns_401(client):
     """步骤11: 传一个无效的 refresh_token 应返回 401"""
-    r = client.post("/auth/refresh?refresh_token=invalid_token_here")
+    r = client.post("/auth/refresh", json={"refresh_token": "invalid_token_here"})
     assert r.status_code == 401
     assert "无效的 refresh token" in r.json()["detail"]

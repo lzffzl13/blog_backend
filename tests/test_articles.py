@@ -1,24 +1,6 @@
 """文章相关测试 - 覆盖创建、查询、修改、删除等场景"""
 
-
-def _register_and_login(client, username: str, email: str, password: str = "secret123"):
-    """辅助函数：注册并登录，返回 access_token"""
-    client.post(
-        "/register",
-        json={
-            "username": username,
-            "email": email,
-            "password": password,
-        },
-    )
-    login_resp = client.post(
-        "/auth/login",
-        json={
-            "username": username,
-            "password": password,
-        },
-    )
-    return login_resp.json()["access_token"]
+from .conftest import register_and_login
 
 
 def test_get_articles_without_token(client):
@@ -36,7 +18,7 @@ def test_create_article_success(client):
     """步骤5: 带 token 创建文章应返回 201,author_id 等于当前用户"""
     # 注册并登录，拿到 token 和用户信息
     reg_resp = client.post(
-        "/register",
+        "/users",
         json={
             "username": "author1",
             "email": "author1@example.com",
@@ -84,7 +66,7 @@ def test_create_article_without_token_returns_401(client):
 def test_update_others_article_returns_403(client):
     """步骤8: 修改他人文章应返回 403,"没有权限修改此文章" """
     # 注册作者并创建文章
-    token_a = _register_and_login(client, "author_a", "a@example.com")
+    token_a = register_and_login(client, "author_a", "a@example.com")
     create_resp = client.post(
         "/articles",
         json={
@@ -97,7 +79,7 @@ def test_update_others_article_returns_403(client):
     article_id = create_resp.json()["id"]
 
     # 注册另一个用户并尝试修改
-    token_b = _register_and_login(client, "user2", "user2@example.com")
+    token_b = register_and_login(client, "user2", "user2@example.com")
     r = client.put(
         f"/articles/{article_id}",
         json={
@@ -113,7 +95,7 @@ def test_update_others_article_returns_403(client):
 def test_delete_others_article_returns_403(client):
     """步骤9: 删除他人文章应返回 403,"没有权限删除此文章" """
     # 注册作者并创建文章
-    token_a = _register_and_login(client, "author_a", "a@example.com")
+    token_a = register_and_login(client, "author_a", "a@example.com")
     create_resp = client.post(
         "/articles",
         json={
@@ -126,7 +108,7 @@ def test_delete_others_article_returns_403(client):
     article_id = create_resp.json()["id"]
 
     # 注册另一个用户并尝试删除
-    token_b = _register_and_login(client, "user2", "user2@example.com")
+    token_b = register_and_login(client, "user2", "user2@example.com")
     r = client.delete(
         f"/articles/{article_id}",
         headers={"Authorization": f"Bearer {token_b}"},
@@ -137,7 +119,7 @@ def test_delete_others_article_returns_403(client):
 
 def test_get_articles_list_returns_all_articles(client):
     """验证 GET /articles 能正确返回已创建的文章"""
-    token = _register_and_login(client, "author1", "author1@example.com")
+    token = register_and_login(client, "author1", "author1@example.com")
 
     # 创建2篇文章
     client.post(
@@ -162,7 +144,7 @@ def test_get_articles_list_returns_all_articles(client):
 def test_get_article_detail_without_token(client):
     """步骤10: 不带 token 获取文章详情应返回 200（公开接口）"""
     # 先创建一篇文章
-    token = _register_and_login(client, "author1", "author1@example.com")
+    token = register_and_login(client, "author1", "author1@example.com")
     create_resp = client.post(
         "/articles",
         json={"title": "公开文章标题", "content": "这是公开文章的内容部分，满足十个字。"},

@@ -29,6 +29,26 @@ def db_session():
     engine.dispose()
 
 
+def register_and_login(client, username: str, email: str, password: str = "secret123"):
+    """辅助函数：注册并登录，返回 access_token"""
+    client.post(
+        "/users",
+        json={
+            "username": username,
+            "email": email,
+            "password": password,
+        },
+    )
+    login_resp = client.post(
+        "/auth/login",
+        json={
+            "username": username,
+            "password": password,
+        },
+    )
+    return login_resp.json()["access_token"]
+
+
 @pytest.fixture(scope="function")
 def client(db_session):
     """基于测试数据库的 FastAPI TestClient,自动覆盖依赖并清理"""
