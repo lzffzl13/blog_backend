@@ -18,11 +18,6 @@ def test_register_duplicate_returns_409(client):
     assert "已被注册" in r2.json()["detail"]
 
 
-# ──────────────────────────────────────────────
-# GET /users/me
-# ──────────────────────────────────────────────
-
-
 def test_get_me_with_token(client):
     """带 token 获取个人信息，返回 200，username 和 email 正确"""
     token = register_and_login(client, "testuser", "testuser@example.com")
@@ -39,11 +34,6 @@ def test_get_me_without_token_returns_401(client):
     """不带 token 获取个人信息，返回 401"""
     r = client.get("/users/me")
     assert r.status_code == 401
-
-
-# ──────────────────────────────────────────────
-# PUT /users/me/password
-# ──────────────────────────────────────────────
 
 
 def test_change_password_success(client):
@@ -100,19 +90,26 @@ def test_change_password_wrong_old_password_returns_400(client):
     assert "旧密码" in r.json()["detail"]
 
 
-# ──────────────────────────────────────────────
-# DELETE /users/me
-# ──────────────────────────────────────────────
-
-
 def test_delete_me_success(client):
-    """带 token 删除账号，返回 204；删除后用同一 token 访问返回 401"""
+    """带 token 删除账号，返回 204,删除后用同一 token 访问返回 401"""
     token = register_and_login(client, "deluser", "deluser@example.com")
+    # 先创建一篇文章
+    client.post(
+        "/articles",
+        json={"title": "to be deleted", "content": "gone with user"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    # 确认文章存在
+    r_article = client.get("/articles/1")
+    assert r_article.status_code == 200
 
     # 删除账号
     r = client.delete("/users/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 204
-
+    # 删除后文章也应该被级联删除
+    r_article2 = client.get("/articles/1")
+    assert r_article2.status_code == 404
     # 删除后用同一个 token 调用 GET /users/me 应返回 401（用户已不存在）
     r2 = client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
     assert r2.status_code == 401

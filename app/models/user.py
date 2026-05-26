@@ -14,4 +14,4 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
-    articles = relationship("Article", back_populates="author")
+    articles = relationship("Article", back_populates="author", cascade="all, delete-orphan")
