@@ -1,9 +1,12 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jwt import ExpiredSignatureError, InvalidTokenError
+from redis.asyncio import Redis
 from sqlalchemy.orm import Session
 
+from app.core.rate_limit import check_login_rate_limit
+from app.core.redis import get_redis
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -19,8 +22,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=Token)
-def login(login_data: LoginRequest, db: Session = Depends(get_db)) -> Token:
+async def login(
+    login_data: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+) -> Token:
     """用户登录,验证用户名和密码,返回access token和refresh token"""
+    await check_login_rate_limit(redis, request)
     user = get_user_by_username(db, login_data.username)
     if not user:
         logger.warning("Login failed: user not found  | username='%s'", login_data.username)

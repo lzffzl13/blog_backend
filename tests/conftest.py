@@ -1,4 +1,5 @@
-import pytest
+import fakeredis.aioredis
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
@@ -6,11 +7,12 @@ from sqlalchemy.pool import StaticPool
 
 import app.models.article  # noqa: F401
 import app.models.user  # noqa: F401
+from app.core.redis import get_redis
 from app.db.session import Base, get_db
 from app.main import app as fastapi_app
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 def db_session():
     """创建临时SQLite内存数据库,每次测试独立"""
     engine = create_engine(
@@ -24,6 +26,7 @@ def db_session():
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
     Base.metadata.create_all(bind=engine)
 
     # print("✅ Created tables in SQLite:", list(Base.metadata.tables.keys()))
@@ -55,9 +58,18 @@ def register_and_login(client, username: str, email: str, password: str = "secre
     return login_resp.json()["access_token"]
 
 
-@pytest.fixture(scope="function")
-def client(db_session):
-    """基于测试数据库的 FastAPI TestClient,自动覆盖依赖并清理"""
+@pytest_asyncio.fixture(scope="function")
+async def redis_client():
+    """每次测试独立的fake Redis客户端,使用 fakeredis库模拟"""
+    client = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    yield client
+    await client.aclose()
+
+
+@pytest_asyncio.fixture(scope="function")
+def client(db_session, redis_client):
+    """基于测试数据库和fake Redis的 FastAPI TestClient,自动覆盖依赖并清理"""
     fastapi_app.dependency_overrides[get_db] = lambda: db_session
+    fastapi_app.dependency_overrides[get_redis] = lambda: redis_client
     yield TestClient(fastapi_app)
     fastapi_app.dependency_overrides.clear()

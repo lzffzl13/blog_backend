@@ -24,7 +24,7 @@ def check(case_name, response, expected_status: int) -> None:
 # 注册用户作为文章作者
 print("准备数据:注册用户作为文章作者")
 r = requests.post(
-    f"{BASE_URL}/register",
+    f"{BASE_URL}/users",
     json={
         "username": "autotest",
         "email": "autotest@example.com",
@@ -37,7 +37,7 @@ user_id = r.json().get("id") if r.status_code == 201 else None
 # 注册重复用户
 print("准备数据:注册重复用户")
 r = requests.post(
-    f"{BASE_URL}/register",
+    f"{BASE_URL}/users",
     json={
         "username": "autotest",
         "email": "autotest@example.com",
@@ -46,6 +46,19 @@ r = requests.post(
 )
 check("重复注册返回 409", r, 409)
 
+# 登录获取 token
+print("准备数据:登录获取 token")
+r = requests.post(
+    f"{BASE_URL}/auth/login",
+    json={
+        "username": "autotest",
+        "password": "secret123",
+    },
+)
+check("登录", r, 200)
+token = r.json().get("access_token") if r.status_code == 200 else None
+headers = {"Authorization": f"Bearer {token}"} if token else {}
+
 ##文章CURD
 # 创建文章
 article_id = None
@@ -53,7 +66,6 @@ if user_id:
     print("\n--- 创建文章 ---")
     r = requests.post(
         f"{BASE_URL}/articles",
-        params={"author_id": user_id},
         json={
             "title": "自动化测试文章",
             "content": "这是一篇由脚本自动创建的文章，用于测试。",
@@ -87,6 +99,7 @@ if article_id:
     print("\n--- 更新文章 ---")
     r = requests.put(
         f"{BASE_URL}/articles/{article_id}",
+        headers=headers,
         json={"title": "自动化测试文章 - 更新", "content": "这篇文章已经被更新了。"},
     )
     check("更新文章", r, 200)
@@ -99,7 +112,6 @@ if user_id:
     print("\n--- 空标题创建文章 ---")
     r = requests.post(
         f"{BASE_URL}/articles",
-        params={"author_id": user_id},
         json={"title": "", "content": "第二篇文章,内容不空,但标题为空。"},
     )
     check("空标题创建文章返回 422", r, 422)
@@ -107,13 +119,13 @@ if user_id:
 # 删除文章
 if article_id:
     print("\n--- 删除文章 ---")
-    r = requests.delete(f"{BASE_URL}/articles/{article_id}")
+    r = requests.delete(f"{BASE_URL}/articles/{article_id}", headers=headers)
     check("删除文章", r, 204)
 
 # 删除已删除的文章
 if article_id:
     print("\n--- 删除已删除的文章 ---")
-    r = requests.delete(f"{BASE_URL}/articles/{article_id}")
+    r = requests.delete(f"{BASE_URL}/articles/{article_id}", headers=headers)
     check("删除已删除的文章返回 404", r, 404)
 
 
