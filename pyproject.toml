@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "A FastAPI blog backend API"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.18.4",
     "annotated-types==0.7.0",
     "bcrypt==5.0.0",
     "email-validator==2.3.0",
