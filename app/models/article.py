@@ -33,3 +33,4 @@ class Article(Base):
     author = relationship("User", back_populates="articles")
     category = relationship("Category", back_populates="articles")
     tags = relationship("Tag", secondary=article_tags, back_populates="articles")
+    comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")

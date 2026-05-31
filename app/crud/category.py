@@ -54,7 +54,7 @@ def update_category(db: Session, category_id: int, category: CategoryUpdate) -> 
     return db_category
 
 
-def delete_category(db: Session, category_id: int) -> None:
+def delete_category(db: Session, category_id: int) -> Category | None:
     """删除分类"""
     db_category = get_category_by_id(db, category_id)
     if not db_category:
@@ -64,4 +64,4 @@ def delete_category(db: Session, category_id: int) -> None:
     db.delete(db_category)
     db.commit()
     logger.info("Category deleted | id=%d | name='%s'", category_id, db_category.name)
-    return None
+    return db_category

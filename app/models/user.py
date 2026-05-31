@@ -15,3 +15,4 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     articles = relationship("Article", back_populates="author", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")

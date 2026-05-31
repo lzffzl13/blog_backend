@@ -33,7 +33,7 @@ def create_tag(db: Session, tag: TagCreate) -> Tag:
     return db_tag
 
 
-def delete_tag(db: Session, tag_id: int) -> None:
+def delete_tag(db: Session, tag_id: int) -> Tag | None:
     """删除标签"""
     db_tag = get_tag_by_id(db, tag_id)
     if not db_tag:
@@ -43,4 +43,4 @@ def delete_tag(db: Session, tag_id: int) -> None:
     db.delete(db_tag)
     db.commit()
     logger.info("Tag deleted | id=%d | name='%s'", tag_id, db_tag.name)
-    return None
+    return db_tag
