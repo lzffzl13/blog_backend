@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.models.article import Article
+from app.models.tag import Tag
 from app.schemas.article import ArticleCreate, ArticleUpdate
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,15 @@ def get_article_by_id(db: Session, article_id: int) -> Article | None:
 
 def create_article(db: Session, article: ArticleCreate, author_id: int) -> Article:
     """创建文章"""
-    db_article = Article(title=article.title, content=article.content, author_id=author_id)
+    db_article = Article(
+        title=article.title,
+        content=article.content,
+        author_id=author_id,
+        category_id=article.category_id,
+    )
+    if article.tag_ids:
+        tags = db.query(Tag).filter(Tag.id.in_(article.tag_ids)).all()
+        db_article.tags = tags
 
     db.add(db_article)
     db.commit()
@@ -48,6 +57,11 @@ def update_article(db: Session, article_id: int, article: ArticleUpdate) -> Arti
         return None
 
     update_data = article.model_dump(exclude_unset=True)
+
+    tag_ids = update_data.pop("tag_ids", None)
+    if tag_ids:
+        tags = db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+        db_article.tags = tags
 
     for field, value in update_data.items():
         setattr(db_article, field, value)

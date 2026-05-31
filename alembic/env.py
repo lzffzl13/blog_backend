@@ -8,6 +8,8 @@ from alembic import context
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import app.models.category  # noqa: F401
+import app.models.tag  # noqa: F401
 from app.core.config import settings
 from app.db.session import Base
 

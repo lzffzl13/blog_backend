@@ -4,6 +4,8 @@ from fastapi import FastAPI
 
 from app.api.article import router as article_router
 from app.api.auth import router as auth_router
+from app.api.category import router as category_router
+from app.api.tag import router as tag_router
 from app.api.user import router as user_router
 from app.core.logging import setup_logging
 
@@ -21,6 +23,8 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(user_router)
 app.include_router(article_router)
 app.include_router(auth_router)
+app.include_router(category_router)
+app.include_router(tag_router)
 
 
 @app.get("/")
