@@ -34,8 +34,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/articles", tags=["articles"])
 
 
-# get /articles 获取文章列表
-@router.get("", response_model=ArticleListResponse)
+@router.get(
+    "",
+    response_model=ArticleListResponse,
+    summary="获取文章列表",
+    description="分页获取文章列表，支持 skip 和 limit 参数。结果会缓存到 Redis 中以提高性能。",
+)
 async def get_articles_list(
     skip: int = Query(0, ge=0, description="跳过条数"),
     limit: int = Query(10, ge=1, le=100, description="返回条数"),
@@ -68,8 +72,13 @@ async def get_articles_list(
     return result
 
 
-# post /articles 创建文章
-@router.post("", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ArticleResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建文章",
+    description="创建一篇新文章。需要提供标题、内容，可选提供分类和标签。需要登录认证。",
+)
 async def create_new_article(
     article: ArticleCreate,
     db: Session = Depends(get_db),
@@ -88,8 +97,12 @@ async def create_new_article(
     return db_article
 
 
-# get /{article_id} 获取文章详情
-@router.get("/{article_id}", response_model=ArticleResponse)
+@router.get(
+    "/{article_id}",
+    response_model=ArticleResponse,
+    summary="获取文章详情",
+    description="根据文章 ID 获取文章详细信息。优先从 Redis 缓存读取，未命中则从数据库读取并写入缓存。",
+)
 async def read_article(
     article_id: int, db: Session = Depends(get_db), redis: Redis = Depends(get_redis)
 ):
@@ -110,8 +123,12 @@ async def read_article(
     return db_article
 
 
-# put /{article_id} 更新文章
-@router.put("/{article_id}", response_model=ArticleResponse)
+@router.put(
+    "/{article_id}",
+    response_model=ArticleResponse,
+    summary="更新文章",
+    description="更新指定文章的内容。只能更新自己创建的文章，非作者尝试更新会返回 403 错误。",
+)
 async def update_existing_article(
     article_id: int,
     article: ArticleUpdate,
@@ -139,8 +156,12 @@ async def update_existing_article(
     return db_article
 
 
-# delete /{article_id} 删除文章
-@router.delete("/{article_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{article_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除文章",
+    description="删除指定文章。只能删除自己创建的文章，非作者尝试删除会返回 403 错误。",
+)
 async def delete_existing_article(
     article_id: int,
     db: Session = Depends(get_db),

@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="注册新用户",
+    description="使用用户名、邮箱和密码注册新用户。如果用户名或邮箱已被注册，返回 409 冲突错误。",
+)
 def register(user_create: UserCreate, db: Session = Depends(get_db)):
     """
     注册新用户
@@ -31,13 +37,22 @@ def register(user_create: UserCreate, db: Session = Depends(get_db)):
     return user
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="获取当前用户信息",
+    description="获取当前登录用户的详细信息。需要提供有效的 JWT Token。",
+)
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """获取当前用户信息"""
     return current_user
 
 
-@router.put("/me/password")
+@router.put(
+    "/me/password",
+    summary="修改当前用户密码",
+    description="修改当前登录用户的密码。需要提供旧密码和新密码，旧密码验证通过后才能修改。",
+)
 def change_password(
     password_data: UserUpdatePassword,
     db: Session = Depends(get_db),
@@ -60,7 +75,12 @@ def change_password(
     return {"detail": "密码修改成功"}
 
 
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除当前用户",
+    description="删除当前登录的用户账号。此操作不可撤销。",
+)
 def delete_current_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),

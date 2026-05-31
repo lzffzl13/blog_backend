@@ -20,7 +20,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/articles/{article_id}/comments", tags=["comments"])
 
 
-@router.get("", response_model=list[CommentResponse])
+@router.get(
+    "",
+    response_model=list[CommentResponse],
+    summary="获取评论列表",
+    description="获取指定文章的所有评论列表，支持分页参数 skip 和 limit。如果文章不存在，返回 404 错误。",
+)
 def get_comments_list(
     article_id: int,
     skip: int = Query(0, ge=0, description="跳过条数"),
@@ -34,7 +39,13 @@ def get_comments_list(
     return get_comments_by_article(db, article_id=article_id, skip=skip, limit=limit)
 
 
-@router.post("", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建评论",
+    description="在指定文章下创建一条评论。需要登录认证。如果文章不存在，返回 404 错误。",
+)
 def create_new_comment(
     article_id: int,
     comment: CommentCreate,
@@ -57,7 +68,12 @@ def create_new_comment(
     return db_comment
 
 
-@router.get("/{comment_id}", response_model=CommentResponse)
+@router.get(
+    "/{comment_id}",
+    response_model=CommentResponse,
+    summary="获取评论详情",
+    description="根据评论 ID 获取评论的详细信息。如果评论不存在或不属于指定文章，返回 404 错误。",
+)
 def read_comment(article_id: int, comment_id: int, db: Session = Depends(get_db)):
     """获取评论详情"""
     db_comment = get_comment_by_id(db, comment_id)
@@ -66,7 +82,12 @@ def read_comment(article_id: int, comment_id: int, db: Session = Depends(get_db)
     return db_comment
 
 
-@router.put("/{comment_id}", response_model=CommentResponse)
+@router.put(
+    "/{comment_id}",
+    response_model=CommentResponse,
+    summary="更新评论",
+    description="更新指定评论的内容。只能更新自己的评论，非作者尝试更新会返回 403 错误。需要登录认证。",
+)
 def update_existing_comment(
     article_id: int,
     comment_id: int,
@@ -91,7 +112,12 @@ def update_existing_comment(
     return db_comment
 
 
-@router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除评论",
+    description="删除指定评论。只能删除自己的评论，非作者尝试删除会返回 403 错误。需要登录认证。",
+)
 def delete_existing_comment(
     article_id: int,
     comment_id: int,

@@ -18,13 +18,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
-@router.get("", response_model=list[CategoryResponse])
+@router.get(
+    "",
+    response_model=list[CategoryResponse],
+    summary="获取分类列表",
+    description="获取所有分类的列表，支持分页参数 skip 和 limit。",
+)
 def get_categories_list(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """获取分类列表"""
     return get_categories(db, skip=skip, limit=limit)
 
 
-@router.get("/{category_id}", response_model=CategoryResponse)
+@router.get(
+    "/{category_id}",
+    response_model=CategoryResponse,
+    summary="获取分类详情",
+    description="根据分类 ID 获取分类的详细信息。如果分类不存在，返回 404 错误。",
+)
 def read_category(category_id: int, db: Session = Depends(get_db)):
     """获取分类详情"""
     db_category = get_category_by_id(db, category_id=category_id)
@@ -33,7 +43,13 @@ def read_category(category_id: int, db: Session = Depends(get_db)):
     return db_category
 
 
-@router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=CategoryResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建分类",
+    description="创建一个新的分类。如果分类名称已存在，返回 409 冲突错误。",
+)
 def create_new_category(category: CategoryCreate, db: Session = Depends(get_db)):
     """创建分类"""
     existing = get_category_by_name(db, name=category.name)
@@ -47,7 +63,12 @@ def create_new_category(category: CategoryCreate, db: Session = Depends(get_db))
     return db_category
 
 
-@router.put("/{category_id}", response_model=CategoryResponse)
+@router.put(
+    "/{category_id}",
+    response_model=CategoryResponse,
+    summary="更新分类",
+    description="更新指定分类的名称或描述。如果分类不存在，返回 404 错误。",
+)
 def update_existing_category(
     category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)
 ):
@@ -60,7 +81,12 @@ def update_existing_category(
     return db_category
 
 
-@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="删除分类",
+    description="删除指定分类。如果分类不存在，返回 404 错误。",
+)
 def delete_existing_category(category_id: int, db: Session = Depends(get_db)):
     """删除分类"""
     db_category = delete_category(db, category_id=category_id)

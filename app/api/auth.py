@@ -21,7 +21,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    summary="用户登录",
+    description="使用用户名和密码进行登录，验证通过后返回 access token 和 refresh token。包含登录频率限制。",
+)
 async def login(
     login_data: LoginRequest,
     request: Request,
@@ -51,7 +56,12 @@ async def login(
     }
 
 
-@router.post("/refresh", response_model=Token)
+@router.post(
+    "/refresh",
+    response_model=Token,
+    summary="刷新 Access Token",
+    description="使用 refresh token 获取新的 access token。refresh token 过期或无效时会返回 401 错误。",
+)
 def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
     """刷新access token"""
     try:

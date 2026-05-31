@@ -3,8 +3,12 @@ from pydantic import BaseModel, Field
 
 class LoginRequest(BaseModel):
     """登录请求体"""
-    username: str = Field(..., min_length=1, max_length=50, description="用户名")
-    password: str = Field(..., min_length=1, max_length=255, description="密码")
+    username: str = Field(
+        ..., min_length=1, max_length=50, description="用户名", examples=["testuser"]
+    )
+    password: str = Field(
+        ..., min_length=1, max_length=255, description="密码", examples=["password123"]
+    )
 
 
 class Token(BaseModel):
@@ -15,7 +19,9 @@ class Token(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """刷新Token请求体"""
-    refresh_token: str = Field(..., description="刷新Token")
+    refresh_token: str = Field(
+        ..., description="刷新Token", examples=["eyJhbGciOiJIUzI1NiIs..."]
+    )
 
 class TokenPayload(BaseModel):
     """JWT 解析后的Payload"""

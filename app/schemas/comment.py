@@ -4,11 +4,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CommentCreate(BaseModel):
-    content: str = Field(..., min_length=1, description="评论内容")
+    content: str = Field(
+        ..., min_length=1, description="评论内容", examples=["好文章，学习了！"]
+    )
 
 
 class CommentUpdate(BaseModel):
-    content: str = Field(..., min_length=1, description="评论内容")
+    content: str = Field(
+        ..., min_length=1, description="评论内容", examples=["更新后的评论内容"]
+    )
 
 
 class CommentResponse(BaseModel):
