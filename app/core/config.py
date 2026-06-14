@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
     LOG_LEVEL: str = "INFO"
+    SQL_ECHO: bool = False
+    TRUST_PROXY_HEADERS: bool = False
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @field_validator("SECRET_KEY")
