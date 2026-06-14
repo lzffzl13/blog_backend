@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     SQL_ECHO: bool = False
     TRUST_PROXY_HEADERS: bool = False
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE_BYTES: int = 5 * 1024 * 1024
+    ALLOWED_UPLOAD_TYPES: list[str] = [
+        "text/plain",
+        "text/markdown",
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+    ]
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @field_validator("SECRET_KEY")

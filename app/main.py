@@ -9,6 +9,7 @@ from app.api.auth import router as auth_router
 from app.api.category import router as category_router
 from app.api.comment import router as comment_router
 from app.api.tag import router as tag_router
+from app.api.upload import router as upload_router
 from app.api.user import router as user_router
 from app.core.config import settings
 from app.core.exceptions import AppException
@@ -47,6 +48,7 @@ app.include_router(auth_router)
 app.include_router(category_router)
 app.include_router(tag_router)
 app.include_router(comment_router)
+app.include_router(upload_router)
 
 # CORS配置
 app.add_middleware(
