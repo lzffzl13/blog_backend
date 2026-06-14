@@ -20,3 +20,5 @@ class User(Base):
 
     articles = relationship("Article", back_populates="author", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")
+    categories = relationship("Category", back_populates="owner", cascade="all, delete-orphan")
+    tags = relationship("Tag", back_populates="owner", cascade="all, delete-orphan")

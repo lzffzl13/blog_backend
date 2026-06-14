@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 import app.models.article  # noqa: F401
+import app.models.category  # noqa: F401
 import app.models.comment  # noqa: F401
+import app.models.tag  # noqa: F401
 import app.models.user  # noqa: F401
 from app.core.redis import get_redis
 from app.db.session import Base, get_db

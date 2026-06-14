@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.models.article import Article
+from app.models.category import Category
 from app.models.tag import Tag
 from app.schemas.article import ArticleCreate, ArticleUpdate
 
@@ -10,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_articles(db: Session, skip: int = 0, limit: int = 10):
-    """获取文章分页"""
     if skip < 0:
         skip = 0
     if limit < 1:
@@ -21,12 +21,50 @@ def get_articles(db: Session, skip: int = 0, limit: int = 10):
 
 
 def get_article_by_id(db: Session, article_id: int) -> Article | None:
-    """根据ID获取文章,如果不存在返回None"""
     return db.query(Article).filter(Article.id == article_id).first()
 
 
-def create_article(db: Session, article: ArticleCreate, author_id: int) -> Article:
-    """创建文章"""
+def _get_accessible_category(
+    db: Session,
+    category_id: int,
+    owner_id: int,
+    actor_is_admin: bool,
+) -> Category | None:
+    if actor_is_admin:
+        return db.query(Category).filter(Category.id == category_id).first()
+    return (
+        db.query(Category)
+        .filter(Category.id == category_id, Category.owner_id == owner_id)
+        .first()
+    )
+
+
+def _get_accessible_tags(
+    db: Session,
+    tag_ids: list[int],
+    owner_id: int,
+    actor_is_admin: bool,
+) -> list[Tag]:
+    query = db.query(Tag).filter(Tag.id.in_(tag_ids))
+    if not actor_is_admin:
+        query = query.filter(Tag.owner_id == owner_id)
+    return query.all()
+
+
+def create_article(
+    db: Session,
+    article: ArticleCreate,
+    author_id: int,
+    actor_is_admin: bool = False,
+) -> Article:
+    if article.category_id is not None and _get_accessible_category(
+        db,
+        article.category_id,
+        author_id,
+        actor_is_admin,
+    ) is None:
+        raise ValueError("Category does not belong to the current user")
+
     db_article = Article(
         title=article.title,
         content=article.content,
@@ -34,7 +72,9 @@ def create_article(db: Session, article: ArticleCreate, author_id: int) -> Artic
         category_id=article.category_id,
     )
     if article.tag_ids:
-        tags = db.query(Tag).filter(Tag.id.in_(article.tag_ids)).all()
+        tags = _get_accessible_tags(db, article.tag_ids, author_id, actor_is_admin)
+        if len(tags) != len(set(article.tag_ids)):
+            raise ValueError("One or more tags do not belong to the current user")
         db_article.tags = tags
 
     db.add(db_article)
@@ -49,8 +89,12 @@ def create_article(db: Session, article: ArticleCreate, author_id: int) -> Artic
     return db_article
 
 
-def update_article(db: Session, article_id: int, article: ArticleUpdate) -> Article | None:
-    """更新文章"""
+def update_article(
+    db: Session,
+    article_id: int,
+    article: ArticleUpdate,
+    actor_is_admin: bool = False,
+) -> Article | None:
     db_article = get_article_by_id(db, article_id)
     if not db_article:
         logger.warning("Article not found for update | id=%d", article_id)
@@ -58,9 +102,20 @@ def update_article(db: Session, article_id: int, article: ArticleUpdate) -> Arti
 
     update_data = article.model_dump(exclude_unset=True)
 
+    if "category_id" in update_data and update_data["category_id"] is not None:
+        if _get_accessible_category(
+            db,
+            update_data["category_id"],
+            db_article.author_id,
+            actor_is_admin,
+        ) is None:
+            raise ValueError("Category does not belong to the current user")
+
     tag_ids = update_data.pop("tag_ids", None)
-    if tag_ids:
-        tags = db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+    if tag_ids is not None:
+        tags = _get_accessible_tags(db, tag_ids, db_article.author_id, actor_is_admin)
+        if len(tags) != len(set(tag_ids)):
+            raise ValueError("One or more tags do not belong to the current user")
         db_article.tags = tags
 
     for field, value in update_data.items():
@@ -73,7 +128,6 @@ def update_article(db: Session, article_id: int, article: ArticleUpdate) -> Arti
 
 
 def delete_article(db: Session, article_id: int) -> Article | None:
-    """删除文章"""
     db_article = get_article_by_id(db, article_id)
     if not db_article:
         logger.warning("Attempt to delete non-existent article | id=%d", article_id)

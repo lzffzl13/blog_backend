@@ -1,100 +1,98 @@
-"""Tag API tests."""
+"""Tag API tests for blog-style ownership."""
 
 from .conftest import promote_user_to_admin, register_and_login
 
 
-def _admin_headers(client, db_session, username: str = "admin_user"):
-    token = register_and_login(client, username, f"{username}@example.com")
-    promote_user_to_admin(db_session, username)
+def _headers_for(client, username: str, email: str):
+    token = register_and_login(client, username, email)
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_create_tag_requires_admin(client):
-    token = register_and_login(client, "regular_user", "regular@example.com")
-    r = client.post(
-        "/tags",
-        json={"name": "Python"},
-        headers={"Authorization": f"Bearer {token}"},
-    )
-    assert r.status_code == 403
+def _admin_headers_for(client, db_session, username: str, email: str):
+    headers = _headers_for(client, username, email)
+    promote_user_to_admin(db_session, username)
+    return headers
 
 
-def test_create_tag_success(client, db_session):
-    r = client.post(
-        "/tags",
-        json={"name": "Python"},
-        headers=_admin_headers(client, db_session),
-    )
+def test_user_can_create_own_tag(client):
+    headers = _headers_for(client, "alice", "alice@example.com")
+    r = client.post("/tags", json={"name": "Python"}, headers=headers)
     assert r.status_code == 201
-    data = r.json()
-    assert data["name"] == "Python"
-    assert "id" in data
+    assert r.json()["name"] == "Python"
 
 
-def test_create_duplicate_tag_returns_409(client, db_session):
-    headers = _admin_headers(client, db_session)
+def test_tag_names_only_need_to_be_unique_per_owner(client):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    headers_b = _headers_for(client, "bob", "bob@example.com")
+
+    assert client.post("/tags", json={"name": "Python"}, headers=headers_a).status_code == 201
+    assert client.post("/tags", json={"name": "Python"}, headers=headers_b).status_code == 201
+
+
+def test_duplicate_tag_for_same_owner_returns_409(client):
+    headers = _headers_for(client, "alice", "alice@example.com")
     client.post("/tags", json={"name": "Python"}, headers=headers)
     r = client.post("/tags", json={"name": "Python"}, headers=headers)
     assert r.status_code == 409
 
 
-def test_get_tags_list(client, db_session):
-    headers = _admin_headers(client, db_session)
-    client.post("/tags", json={"name": "Python"}, headers=headers)
-    client.post("/tags", json={"name": "JavaScript"}, headers=headers)
+def test_user_only_sees_own_tags(client):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    headers_b = _headers_for(client, "bob", "bob@example.com")
 
-    r = client.get("/tags")
+    client.post("/tags", json={"name": "Python"}, headers=headers_a)
+    client.post("/tags", json={"name": "JavaScript"}, headers=headers_b)
+
+    r = client.get("/tags", headers=headers_a)
     assert r.status_code == 200
-    data = r.json()
-    assert len(data) == 2
-    names = [t["name"] for t in data]
-    assert "Python" in names
-    assert "JavaScript" in names
+    names = [item["name"] for item in r.json()]
+    assert names == ["Python"]
 
 
-def test_get_tag_by_id(client, db_session):
-    create_resp = client.post(
-        "/tags",
-        json={"name": "Python"},
-        headers=_admin_headers(client, db_session),
-    )
-    tag_id = create_resp.json()["id"]
+def test_admin_sees_all_tags(client, db_session):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    headers_b = _headers_for(client, "bob", "bob@example.com")
+    admin_headers = _admin_headers_for(client, db_session, "admin", "admin@example.com")
 
-    r = client.get(f"/tags/{tag_id}")
+    client.post("/tags", json={"name": "Python"}, headers=headers_a)
+    client.post("/tags", json={"name": "JavaScript"}, headers=headers_b)
+
+    r = client.get("/tags", headers=admin_headers)
     assert r.status_code == 200
-    assert r.json()["name"] == "Python"
+    names = sorted(item["name"] for item in r.json())
+    assert names == ["JavaScript", "Python"]
 
 
-def test_get_tag_not_found_returns_404(client):
-    r = client.get("/tags/9999")
-    assert r.status_code == 404
+def test_user_cannot_read_other_users_tag(client):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    headers_b = _headers_for(client, "bob", "bob@example.com")
+    tag_id = client.post("/tags", json={"name": "Python"}, headers=headers_a).json()["id"]
+
+    r = client.get(f"/tags/{tag_id}", headers=headers_b)
+    assert r.status_code == 403
 
 
-def test_delete_tag_success(client, db_session):
-    headers = _admin_headers(client, db_session)
-    create_resp = client.post("/tags", json={"name": "Python"}, headers=headers)
-    tag_id = create_resp.json()["id"]
+def test_user_can_delete_own_tag(client):
+    headers = _headers_for(client, "alice", "alice@example.com")
+    tag_id = client.post("/tags", json={"name": "Python"}, headers=headers).json()["id"]
 
     r = client.delete(f"/tags/{tag_id}", headers=headers)
     assert r.status_code == 204
 
-    r_get = client.get(f"/tags/{tag_id}")
-    assert r_get.status_code == 404
 
+def test_user_cannot_delete_other_users_tag(client):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    headers_b = _headers_for(client, "bob", "bob@example.com")
+    tag_id = client.post("/tags", json={"name": "Python"}, headers=headers_a).json()["id"]
 
-def test_delete_tag_requires_admin(client, db_session):
-    headers = _admin_headers(client, db_session)
-    create_resp = client.post("/tags", json={"name": "Python"}, headers=headers)
-    tag_id = create_resp.json()["id"]
-
-    token = register_and_login(client, "deleter", "deleter@example.com")
-    r = client.delete(
-        f"/tags/{tag_id}",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    r = client.delete(f"/tags/{tag_id}", headers=headers_b)
     assert r.status_code == 403
 
 
-def test_delete_tag_not_found_returns_404(client, db_session):
-    r = client.delete("/tags/9999", headers=_admin_headers(client, db_session))
-    assert r.status_code == 404
+def test_admin_can_delete_any_tag(client, db_session):
+    headers_a = _headers_for(client, "alice", "alice@example.com")
+    admin_headers = _admin_headers_for(client, db_session, "admin", "admin@example.com")
+    tag_id = client.post("/tags", json={"name": "Python"}, headers=headers_a).json()["id"]
+
+    r = client.delete(f"/tags/{tag_id}", headers=admin_headers)
+    assert r.status_code == 204
