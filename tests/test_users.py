@@ -28,6 +28,7 @@ def test_get_me_with_token(client):
     data = r.json()
     assert data["username"] == "testuser"
     assert data["email"] == "testuser@example.com"
+    assert data["role"] == "user"
     assert "id" in data
 
 

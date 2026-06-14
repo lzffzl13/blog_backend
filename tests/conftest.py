@@ -12,6 +12,7 @@ import app.models.user  # noqa: F401
 from app.core.redis import get_redis
 from app.db.session import Base, get_db
 from app.main import app as fastapi_app
+from app.models.user import ADMIN_USER_ROLE, User
 
 
 class AsyncRedisStub:
@@ -111,6 +112,17 @@ def register_and_login(client, username: str, email: str, password: str = "secre
         },
     )
     return login_resp.json()["access_token"]
+
+
+def promote_user_to_admin(db_session: Session, username: str) -> User:
+    user = db_session.query(User).filter(User.username == username).first()
+    if user is None:
+        raise AssertionError(f"User '{username}' was not found")
+
+    user.role = ADMIN_USER_ROLE
+    db_session.commit()
+    db_session.refresh(user)
+    return user
 
 
 @pytest_asyncio.fixture(scope="function")

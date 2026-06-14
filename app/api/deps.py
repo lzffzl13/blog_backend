@@ -10,7 +10,7 @@ from app.core.redis import get_redis
 from app.core.security import ACCESS_TOKEN_TYPE, decode_token
 from app.crud.user import get_user_by_username
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import ADMIN_USER_ROLE, User
 from app.services.auth_tokens import is_token_blacklisted
 
 logger = logging.getLogger(__name__)
@@ -61,3 +61,12 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != ADMIN_USER_ROLE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return current_user

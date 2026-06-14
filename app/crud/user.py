@@ -3,7 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password, verify_password
-from app.models.user import User
+from app.models.user import DEFAULT_USER_ROLE, User
 from app.schemas.user import UserCreate
 
 logger = logging.getLogger(__name__)
@@ -30,6 +30,7 @@ def create_user(db: Session, user_create: UserCreate) -> User | None:
         username=user_create.username,
         email=user_create.email,
         hashed_password=hashed_password,
+        role=DEFAULT_USER_ROLE,
     )
 
     db.add(db_user)
