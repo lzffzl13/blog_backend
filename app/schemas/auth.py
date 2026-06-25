@@ -2,18 +2,18 @@ from pydantic import BaseModel, Field
 
 
 class LoginRequest(BaseModel):
-    """鐧诲綍璇锋眰浣?"""
+    """登录请求体"""
 
     username: str = Field(
-        ..., min_length=1, max_length=50, description="鐢ㄦ埛鍚?", examples=["testuser"]
+        ..., min_length=1, max_length=50, description="用户名", examples=["testuser"]
     )
     password: str = Field(
-        ..., min_length=1, max_length=255, description="瀵嗙爜", examples=["password123"]
+        ..., min_length=1, max_length=255, description="密码", examples=["password123"]
     )
 
 
 class Token(BaseModel):
-    """鐧诲綍鍝嶅簲浣?"""
+    """登录响应体"""
 
     access_token: str
     refresh_token: str
@@ -21,25 +21,25 @@ class Token(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    """鍒锋柊Token璇锋眰浣?"""
+    """刷新Token请求体"""
 
     refresh_token: str = Field(
-        ..., description="鍒锋柊Token", examples=["eyJhbGciOiJIUzI1NiIs..."]
+        ..., description="刷新Token", examples=["eyJhbGciOiJIUzI1NiIs..."]
     )
 
 
 class LogoutRequest(BaseModel):
-    """閫€鍑虹櫥褰曡姹備綋"""
+    """退出登录请求体"""
 
     refresh_token: str | None = Field(
         None,
-        description="鍙€夌殑 refresh token锛岀敤浜庡悓鏃跺け鏁?",
+        description="可选的 refresh token，用于同时失效",
         examples=["eyJhbGciOiJIUzI1NiIs..."],
     )
 
 
 class TokenPayload(BaseModel):
-    """JWT 瑙ｆ瀽鍚庣殑Payload"""
+    """JWT 解析后的Payload"""
 
     sub: str
     exp: int

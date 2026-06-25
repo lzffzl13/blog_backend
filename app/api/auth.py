@@ -29,8 +29,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 @router.post(
     "/login",
     response_model=Token,
-    summary="鐢ㄦ埛鐧诲綍",
-    description="浣跨敤鐢ㄦ埛鍚嶅拰瀵嗙爜杩涜鐧诲綍锛岄獙璇侀€氳繃鍚庤繑鍥?access token 鍜?refresh token銆傚寘鍚櫥褰曢鐜囬檺鍒躲€?",
+    summary="用户登录",
+    description="使用用户名和密码进行登录，验证通过后返回 access token 和 refresh token。包含登录频率限制。",
 )
 async def login(
     login_data: LoginRequest,
@@ -38,16 +38,16 @@ async def login(
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> Token:
-    """鐢ㄦ埛鐧诲綍,楠岃瘉鐢ㄦ埛鍚嶅拰瀵嗙爜,杩斿洖access token鍜宺efresh token"""
+    """用户登录，验证用户名和密码，返回access token和refresh token"""
     await check_login_rate_limit(redis, request)
     user = get_user_by_username(db, login_data.username)
     if not user:
         logger.warning("Login failed: user not found  | username='%s'", login_data.username)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="鐢ㄦ埛鍚嶆垨瀵嗙爜閿欒")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")
 
     if not verify_password(login_data.password, user.hashed_password):
         logger.warning("Login failed: incorrect password  | username='%s'", login_data.username)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="鐢ㄦ埛鍚嶆垨瀵嗙爜閿欒")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")
 
     token_data = {"sub": user.username}
     access_token = create_access_token(data=token_data)
@@ -64,39 +64,39 @@ async def login(
 @router.post(
     "/refresh",
     response_model=Token,
-    summary="鍒锋柊 Access Token",
-    description="浣跨敤 refresh token 鑾峰彇鏂扮殑 access token銆俽efresh token 杩囨湡鎴栨棤鏁堟椂浼氳繑鍥?401 閿欒銆?",
+    summary="刷新 Access Token",
+    description="使用 refresh token 获取新的 access token。refresh token 过期或无效时会返回 401 错误。",
 )
 async def refresh_token(
     refresh_data: RefreshTokenRequest,
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ):
-    """鍒锋柊access token"""
+    """刷新access token"""
     try:
         payload = decode_token(refresh_data.refresh_token, expected_type=REFRESH_TOKEN_TYPE)
     except ExpiredSignatureError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token 宸茶繃鏈?",
+            detail="Refresh token 已过期",
         )
     except InvalidTokenError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="鏃犳晥鐨?refresh token",
+            detail="无效的 refresh token",
         )
 
     if await is_token_blacklisted(redis, payload):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token 宸插け鏁?",
+            detail="Refresh token 已失效",
         )
 
     username: str | None = payload.get("sub")
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token 涓己灏戠敤鎴锋爣璇?",
+            detail="Refresh token 中缺少用户标识",
         )
 
     user = get_user_by_username(db, username=username)
@@ -104,7 +104,7 @@ async def refresh_token(
         logger.warning("Refresh token failed: user not found  | username='%s'", username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="鐢ㄦ埛涓嶅瓨鍦?",
+            detail="用户不存在",
         )
 
     new_access_token = create_access_token(data={"sub": user.username})
@@ -119,26 +119,26 @@ async def refresh_token(
 @router.post(
     "/logout",
     status_code=status.HTTP_200_OK,
-    summary="閫€鍑虹櫥褰?",
-    description="灏嗗綋鍓?access token 鍔犲叆黑名单锛屽彲閫夊悓鏃跺け鏁?refresh token銆?",
+    summary="退出登录",
+    description="将当前 access token 加入黑名单，可选同时失效 refresh token。",
 )
 async def logout(
     logout_data: LogoutRequest,
     token: str = Depends(oauth2_scheme),
     redis: Redis = Depends(get_redis),
 ):
-    """灏嗗綋鍓?token 鍔犲叆黑名单"""
+    """将当前 token 加入黑名单"""
     try:
         access_payload = decode_token(token, expected_type=ACCESS_TOKEN_TYPE)
     except ExpiredSignatureError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token 宸茶繃鏈?",
+            detail="Token 已过期",
         )
     except InvalidTokenError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="鏃犳晥鐨?Token",
+            detail="无效的 Token",
         )
 
     await blacklist_token(redis, access_payload)
@@ -152,14 +152,14 @@ async def logout(
         except ExpiredSignatureError:
             raise HTTPException(  # noqa: B904
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Refresh token 宸茶繃鏈?",
+                detail="Refresh token 已过期",
             )
         except InvalidTokenError:
             raise HTTPException(  # noqa: B904
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="鏃犳晥鐨?refresh token",
+                detail="无效的 refresh token",
             )
 
         await blacklist_token(redis, refresh_payload)
 
-    return {"detail": "閫€鍑烘垚鍔?"}
+    return {"detail": "退出成功"}

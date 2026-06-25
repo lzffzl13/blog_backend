@@ -23,26 +23,26 @@ async def get_current_user(
     db: Session = Depends(get_db),
     redis: Redis = Depends(get_redis),
 ) -> User:
-    """浠庤姹傚ご Bearer token 涓幏鍙栧綋鍓嶇敤鎴?"""
+    """从请求头 Bearer token 中获取当前用户"""
     try:
         payload = decode_token(token, expected_type=ACCESS_TOKEN_TYPE)
     except ExpiredSignatureError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token 宸茶繃鏈?",
+            detail="Token 已过期",
             headers={"WWW-Authenticate": "Bearer"},
         )
     except InvalidTokenError:
         raise HTTPException(  # noqa: B904
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="鏃犳晥鐨?Token",
+            detail="无效的 Token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     if await is_token_blacklisted(redis, payload):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token 宸插け鏁?",
+            detail="Token 已失效",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -50,14 +50,14 @@ async def get_current_user(
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token 涓己灏戠敤鎴锋爣璇?",
+            detail="Token 中缺少用户标识",
         )
 
     user = get_user_by_username(db, username=username)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="鐢ㄦ埛涓嶅瓨鍦?",
+            detail="用户不存在",
         )
 
     return user

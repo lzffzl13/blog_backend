@@ -12,12 +12,12 @@ REFRESH_TOKEN_TYPE = "refresh"
 
 
 def hash_password(password: str) -> str:
-    """鍝堝笇瀵嗙爜"""
+    """哈希密码"""
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """楠岃瘉瀵嗙爜鏄惁鍖归厤"""
+    """验证密码是否匹配"""
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
@@ -36,13 +36,13 @@ def _create_token(data: dict, token_type: str, expires_delta: timedelta) -> str:
 
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """绛惧彂access token"""
+    """签发access token"""
     ttl = expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     return _create_token(data=data, token_type=ACCESS_TOKEN_TYPE, expires_delta=ttl)
 
 
 def create_refresh_token(data: dict) -> str:
-    """绛惧彂refresh token,7澶╄繃鏈?"""
+    """签发refresh token，7天过期"""
     return _create_token(
         data=data,
         token_type=REFRESH_TOKEN_TYPE,
@@ -51,7 +51,7 @@ def create_refresh_token(data: dict) -> str:
 
 
 def decode_token(token: str, expected_type: str | None = None) -> dict:
-    """瑙ｇ爜token,杩斿洖payload"""
+    """解码token，返回payload"""
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     token_type = payload.get("token_type")
     if expected_type and token_type != expected_type:

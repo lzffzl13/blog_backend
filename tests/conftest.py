@@ -74,7 +74,7 @@ class AsyncRedisStub:
 
 @pytest_asyncio.fixture(scope="function")
 def db_session():
-    """鍒涘缓涓存椂SQLite鍐呭瓨鏁版嵁搴?姣忔娴嬭瘯鐙珛"""
+    """创建临时SQLite内存数据库，每次测试独立"""
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -97,7 +97,7 @@ def db_session():
 
 
 def register_and_login(client, username: str, email: str, password: str = "secret123"):
-    """杈呭姪鍑芥暟锛氭敞鍐屽苟鐧诲綍锛岃繑鍥?access_token"""
+    """辅助函数：注册并登录，返回access_token"""
     client.post(
         "/users",
         json={
@@ -129,7 +129,7 @@ def promote_user_to_admin(db_session: Session, username: str) -> User:
 
 @pytest_asyncio.fixture(scope="function")
 async def redis_client():
-    """姣忔娴嬭瘯鐙珛鐨勫紓姝?Redis stub瀹㈡埛绔?"""
+    """每次测试独立的异步Redis stub客户端"""
     client = AsyncRedisStub()
     yield client
     await client.aclose()
@@ -137,7 +137,7 @@ async def redis_client():
 
 @pytest_asyncio.fixture(scope="function")
 def client(db_session, redis_client):
-    """鍩轰簬娴嬭瘯鏁版嵁搴撳拰fake Redis鐨?FastAPI TestClient,鑷姩瑕嗙洊渚濊禆骞舵竻鐞?"""
+    """基于测试数据库和fake Redis的FastAPI TestClient，自动覆盖依赖并清理"""
     fastapi_app.dependency_overrides[get_db] = lambda: db_session
     fastapi_app.dependency_overrides[get_redis] = lambda: redis_client
     yield TestClient(fastapi_app)
